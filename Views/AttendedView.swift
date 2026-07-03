@@ -9,27 +9,52 @@ import SwiftUI
 import SwiftData
 
 struct AttendedView: View {
-    @Query private var shows: [Show]
+    @Query(sort: \Show.date, order: .reverse) private var allShows: [Show]
     @Environment(\.modelContext) private var modelContext
+    @State private var viewModel = AttendedViewModel()
+    
     var body: some View {
+        @Bindable var vm = viewModel
         
-        NavigationStack{
-            List(shows) { show in
-                Text(show.artistName)
-            }
-            .navigationTitle("Attended")
-            .toolbar{
-                Button("Add show!",
-                       systemImage: "plus"
-                ){
-                    modelContext.insert(Show (artistName: "Foo Fighters", venueName: "California", city: "San Francisco", date: .now, status: .attended),
-                    )
+        NavigationStack {
+            Group {
+                if viewModel.filteredShows(allShows).isEmpty {
+                    ContentUnavailableView("No results", systemImage: "magnifyingglass")
+                } else {
+                    List {
+                        ForEach(viewModel.filteredShows(allShows)){
+                            show in
+                            
+                            NavigationLink(value: show){
+                                ShowRowView(show: show)
+                            }
+                        }
+                        .onDelete { indexSet in
+                            let shows = viewModel.filteredShows(allShows)
+                            for index in indexSet {
+                                viewModel.delete(shows[index], context: modelContext)
+                            }
+                        }
+                    }
                 }
             }
+            .navigationTitle("Attended")
+            .searchable(text: $vm.searchText, prompt: "Artists, Venues, Cities")
+            .navigationDestination(for: Show.self){
+                show in
+                // show detail view
+            }
+            .toolbar {
+                Button("Add show!", systemImage: "plus") {
+                    viewModel.showingAddSheet = true
+                }
+                }
+            .sheet(isPresented: $vm.showingAddSheet) {
+                AddEditShowView()
+            }
+            }
         }
-        
     }
-}
 
 #Preview {
     AttendedView()
