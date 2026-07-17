@@ -10,9 +10,15 @@ import SwiftData
 
 @main
 struct EncoreApp: App {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            if hasCompletedOnboarding {
+                MainTabView()
+            } else {
+                OnboardingView()
+            }
+       
         }
         .modelContainer(for: Show.self)
     }
